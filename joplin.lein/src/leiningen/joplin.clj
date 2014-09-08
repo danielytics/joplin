@@ -28,16 +28,16 @@
 (defn- add-joplin-deps [project]
   (let [types (get-db-types project)]
     (-> project
-        (deps/add-if-missing '[joplin.core "0.1.12-SNAPSHOT"])
+        (deps/add-if-missing '[joplin.core "0.1.12"])
         (add-dep :dt types)
         (add-dep :cass types)
         (add-dep :jdbc types)
         (add-dep :es types)
         (add-dep :zk types))))
 
-(defn- get-require-string [types]
+(defn- get-require-string [types extra-libs]
   (->> types
-       (keep libs)
+       (keep (conj libs extra-libs))
        (map #(str % ".database"))
        (interpose ",")
        (apply str)))
@@ -49,10 +49,11 @@
         databases    (-> project :joplin :databases)
         migrators    (-> project :joplin :migrators)
         seeds        (-> project :joplin :seeds)
+        extra-libs   (-> project :joplin :libs)
         project      (add-joplin-deps project)]
     (apply run project
            "-m" "joplin.main"
-           "-r" (get-require-string (get-db-types project))
+           "-r" (get-require-string (get-db-types project) extra-libs)
            "-e" environments
            "-d" databases
            "-m" migrators
