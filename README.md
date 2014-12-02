@@ -70,6 +70,8 @@ Example of a joplin definition;
          :environments {:dev [{:db :sql-dev, :migrator :sql-mig, :seed :sql-seed}]
                         :prod [{:db :sql-prod, :migrator :sql-mig}
                                {:db :es-prod}, :seed :es-seed]
+        ;; Define custom databases for use above
+        :libs {:my-custom-db "my-project.custom-db"}    ;; Allow :my-custom-db to be used in :databases above, loaded from namespace my-project.custom-db.database
         }
 ```
 

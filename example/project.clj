@@ -1,15 +1,17 @@
 (defproject joplin-example "0.1.12-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [com.h2database/h2 "1.3.160"]]
-  :plugins [[joplin.lein "0.1.12-SNAPSHOT"]]
+  :plugins [[joplin.lein "0.1.12"]]
 
   :source-paths ["src" "joplin"]
 
   :joplin {
+           :libs {:rethinkdb "rethinkdb"}
            :migrators {:sql-mig "joplin/migrators/sql"
                        :imported-sql-mig "resources/imported-migrators/sql"
                        :es-mig "joplin/migrators/es"
                        :cass-mig "joplin/migrators/cass"
+                       :rethink-mig "joplin/migrators/rethink"
                        :dt-mig "joplin/migrators/datomic"}
            :seeds {:sql-seed "seeds.sql/run"
                    :imported-sql-seed "imported-seeds.sql/run"
