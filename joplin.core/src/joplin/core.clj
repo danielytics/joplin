@@ -105,13 +105,16 @@ or resource folders inside a jar on the classpath"
   "Get all seq of ragtime migrators given a path
 (will scan the filesystem and classpath)"
   [path]
-  (for [[id ns] (get-migration-namespaces path)]
-    (do
-      (require ns)
-      (verbose-migration
-       {:id id
-        :up (load-var (str ns "/up"))
-        :down (load-var (str ns "/down"))}))))
+  (let [migration-namespaces (get-migration-namespaces path)]
+    (when (empty? migration-namespaces)
+      (println "Warning, no migrators found!"))
+    (for [[id ns] migration-namespaces]
+      (do
+        (require ns)
+        (verbose-migration
+         {:id id
+          :up (load-var (str ns "/up"))
+          :down (load-var (str ns "/down"))})))))
 
 (defn do-migrate
   "Perform migration on a database"
@@ -121,12 +124,14 @@ or resource folders inside a jar on the classpath"
 
 (defn do-rollback
   "Perform rollback on a database"
-  [migrations db n-str]
+  [migrations db n]
   (println "Rolling back" db)
   (doseq [m migrations]
     (ragtime.core/remember-migration m))
-  (ragtime.core/rollback-last db (or (when n-str (Integer/parseInt n-str))
-                                     1)))
+  (ragtime.core/rollback-last db (cond
+                                  (string? n) (Integer/parseInt n)
+                                  (number? n) n
+                                  :else 1)))
 
 (defn do-seed-fn
   "Run a seeder function with migration check"
@@ -144,7 +149,7 @@ or resource folders inside a jar on the classpath"
 
        seed-fn
        (do
-         (println "Appying seed function" (:seed target))
+         (println "Applying seed function" (:seed target))
          (apply seed-fn target args))
 
        :else
@@ -152,7 +157,11 @@ or resource folders inside a jar on the classpath"
 
 (defn do-reset
   "Perform a reset on a database"
-  [db target args]
+  [migrations db target args]
+
+  (println "Resetting" db)
+  (doseq [m migrations]
+    (ragtime.core/remember-migration m))
 
   ;; Roll back all
   (ragtime.core/rollback-last db Integer/MAX_VALUE)

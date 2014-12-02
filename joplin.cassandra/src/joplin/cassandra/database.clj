@@ -37,7 +37,7 @@
     (ensure-migration-schema (get-connection hosts keyspace))
     (cql/delete (get-connection hosts keyspace)
                 "migrations"
-                (cq/where :id id)))
+                (cq/where {:id id})))
 
   (applied-migration-ids [db]
     (ensure-migration-schema (get-connection hosts keyspace))
@@ -65,7 +65,8 @@
     (do-seed-fn migrations (->CassDatabase target) target args)))
 
 (defmethod reset-db :cass [target & args]
-  (do-reset (->CassDatabase target) target args))
+  (do-reset (get-migrations (:migrator target))
+            (->CassDatabase target) target args))
 
 (defmethod create-migration :cass [target & [id]]
   (do-create-migration target id "joplin.cassandra.database"))

@@ -25,13 +25,13 @@ Joplin is built on top of [ragtime](https://github.com/weavejester/ragtime).
 Add joplin.core as a dependency if you just want the database-independent core:
 
 ```clojure
-:dependencies [[joplin.core "0.1.11"]]
+:dependencies [[joplin.core "0.2.2"]]
 ```
 
-Or add the full library if you want support for ES/SQL/DT/CASS/ZK databases:
+Or add the full library if you want support for ElasticSearch/SQL/Datomic/Cassandra/ZooKeeper databases:
 
 ```clojure
-:dependencies [[joplin "0.1.11"]]
+:dependencies [[joplin "0.2.2"]]
 ```
 
 You can also cherry-pick the plugins you need to minimize the dependencies in your classpath. Just include `joplin.core` and the plugins you are interested in.
@@ -39,7 +39,7 @@ You can also cherry-pick the plugins you need to minimize the dependencies in yo
 If you want to integrate Joplin into Leiningen:
 
 ```clojure
-:plugins [[joplin.lein "0.1.11"]]
+:plugins [[joplin.lein "0.2.2"]]
 ```
 
 `joplin.lein` will only add dependencies for the plugins that you are using, i.e. the type of the databases you have defined.
@@ -62,14 +62,14 @@ Example of a joplin definition;
          :seeds {:sql-seed "seeds.sql/run"             ;; A clojure var (function) that applies the seed
                  :es-seed "seeds.es/run"}
 
-         :databases {:sql-dev {:type :jdbc, :url "jdbc:h2:mem:dev"
+         :databases {:sql-dev {:type :jdbc, :url "jdbc:h2:mem:dev"}
                      :es-prod {:type :es, :host "es-prod.local", :port "9300", :cluster "dev"}
-                     :sql-prod {:type :jdbc, :url "jdbc:h2:file:prod"}
+                     :sql-prod {:type :jdbc, :url "jdbc:h2:file:prod"}}
 
          ;; We combine the definitions above into different environments
          :environments {:dev [{:db :sql-dev, :migrator :sql-mig, :seed :sql-seed}]
                         :prod [{:db :sql-prod, :migrator :sql-mig}
-                               {:db :es-prod}, :seed :es-seed]
+                               {:db :es-prod}, :seed :es-seed]}
         ;; Define custom databases for use above
         :libs {:my-custom-db "my-project.custom-db"}    ;; Allow :my-custom-db to be used in :databases above, loaded from namespace my-project.custom-db.database
         }
@@ -81,7 +81,7 @@ All commands take the name of the environment as their first argument.
 
 - `lein joplin migrate ENV [DB]`
 
-Run all pending (up) migrations on either all databases in the environment of a single if the DB param us provided. This operation is idempotent.
+Run all pending (up) migrations on either all databases in the environment or a single if the DB param is provided. This operation is idempotent.
 
 - `lein joplin seed ENV [DB]`
 
@@ -105,25 +105,13 @@ Create a new migration scaffold file for a single database in an environment. Th
 
 ### Writing migrators
 
-Migrators come in 2 flavors; ragtime-style migrators for :jdbc databases and drift-style migrators for everything else.
+Joplin migrators defaults to be 'code driven'. They are basic Clojure files and allows the migrators to be as simple or complicated as needed. If you are working with a SQL database, there is a second flavour of migrators at your disposal; ragtime-style sql migrators.
 
-#### SQL migrators
+#### Joplin default migrators
 
-A SQL migrator consists of 2 files, one for the up and another for the down migration. Both must have the same name except for to the up/down part. These files can contain any number of SQL statements but nothing else.
+A migrator consist of a single clojure source file. This file must contain (at least) 2 function definitions, one called `up` and one called `down`. The migrators will be called with one argument, which is the Ragtime Migratable record created by the joplin plugin. These record will contain the information you need to make a connections to the database and inflict a change.
 
-Example of SQL migrators;
-
-```
-$ ls -1 migrators/sql
-20120903221323-add-test-table.down.sql
-20120903221323-add-test-table.up.sql
-$ cat migrators/sql/20120903221323-add-test-table.up.sql
-CREATE TABLE test_table (id INT);
-```
-
-Non-SQL migrators consist of a single clojure source file. This file must contain (at least) 2 function definitions, one called `up` and one called `down`. The migrators will be called with one argument, which is the Ragtime Migratable record created by the joplin plugin. These record will contain the information you need to make a connections to the database and inflict a change.
-
-Example of non-SQL migrator;
+Example of migrator;
 
 ```clojure
 $ ls -1 migrators/cass
@@ -147,6 +135,22 @@ $ cat migrators/cass/20140717174605_users.clj
 ```
 
 Read the `project.clj` file for the corresponding joplin plugin to see what clojure database libraries can be used in the migrators.
+
+#### SQL migrators
+
+When migrating SQL databases you have 2 flavours of migrators at your disposal. You may specify your migrations with two text files (one up, one down) as shown below:
+
+```
+$ ls -1 migrators/sql
+20120903221323-add-test-table.down.sql
+20120903221323-add-test-table.up.sql
+$ cat migrators/sql/20120903221323-add-test-table.up.sql
+CREATE TABLE test_table (id INT);
+```
+
+For this type of migration, use the Joplin database type `:sql`.
+
+You may also specify your migrations as Clojure namespaces, like the example for Cassandra above, by using the Joplin database type `:jdbc`. See the example project for details.
 
 ### Writing seed functions
 

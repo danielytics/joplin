@@ -2,12 +2,13 @@
   (:require [leinjacker.deps :as deps])
   (:use [leiningen.run :only (run)]))
 
-(def version "0.1.12-SNAPSHOT")
+(def version "0.2.3-SNAPSHOT")
 
 (def libs
   {:dt   "joplin.datomic"
    :cass "joplin.cassandra"
    :jdbc "joplin.jdbc"
+   :sql  "joplin.jdbc"
    :es   "joplin.elasticsearch"
    :zk   "joplin.zookeeper"})
 
@@ -28,10 +29,11 @@
 (defn- add-joplin-deps [project]
   (let [types (get-db-types project)]
     (-> project
-        (deps/add-if-missing '[joplin.core "0.1.12"])
+        (deps/add-if-missing '[joplin.core "0.2.3-SNAPSHOT"])
         (add-dep :dt types)
         (add-dep :cass types)
         (add-dep :jdbc types)
+        (add-dep :sql types)
         (add-dep :es types)
         (add-dep :zk types))))
 
